@@ -35,6 +35,8 @@ class DietGenerateRequest(BaseModel):
         example=["海鲜", "辣"]
     )
 
+    # 【重要】json_schema_extra：为FastAPI /docs接口文档提供完整请求样例
+    # 删除后：接口文档不会展示整套可复制的JSON示例，仅保留单字段example
     class Config:
         json_schema_extra = {
             "example": {

@@ -30,11 +30,12 @@ target/
 .settings/
 
 # ==========================================
-# 4. Vue / Node.js (fitbite-web-frontend) 忽略规则
+# 4. Vue / Node.js (fitbite-frontend) 忽略规则
 # ==========================================
-node_modules/
-dist/
-dist-ssr/
+fitbite-frontend/node_modules/
+fitbite-frontend/dist/
+fitbite-frontend/dist-ssr/
+fitbite-frontend/*.local
 *.local
 
 # ==========================================
