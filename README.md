@@ -1,7 +1,7 @@
 ﻿# FitBite 智膳 —— 基于 AI Agent 的个性化减脂餐与健康管理系统
 
 ## 📖 项目简介
-FitBite 智膳是一款结合 Java 传统业务管理与 Python AI 智能体（Agent）微服务的健康饮食管理平台。 系统解决传统减肥人群“算热量繁琐、食谱不接地气、缺乏动态追踪”的痛点，提供基于个人体征与现有食材的智能减脂餐定制、RAG 膳食知识问答及每日热量账本管理。
+FitBite 智膳是一款结合 Java 传统业务管理与 Python AI 智能体（Agent）微服务的健康饮食管理平台。系统解决传统减肥人群“算热量繁琐、食谱不接地气、缺乏动态追踪”的痛点，提供基于个人体征与现有食材的智能减脂餐定制、基于 MySQL 多对多关系的菜品食材检索库以及每日热量账本管理。
 
 ---
 
@@ -38,9 +38,9 @@ fitbite-hub/                           # 【主项目根目录】
 │   │   └── main/
 │   │       ├── java/com/fitbite/
 │   │       │   ├── config/            # 配置类 (Redis, WebClient, Knife4j)
-│   │       │   ├── controller/        # 业务路由层 (透传 AI 服务, 处理用户数据)
-│   │       │   ├── domain/            # 实体类 (Entity, DTO, VO)
-│   │       │   ├── mapper/            # DAO 层 (MyBatis-Plus)
+│   │       │   ├── controller/        # 业务路由层 (透传 AI 服务, 菜品食材检索, 打卡账本)
+│   │       │   ├── domain/entity/     # 实体类 (User, DietRecord, Dish, Ingredient)
+│   │       │   ├── mapper/            # DAO 层 (MyBatis-Plus 动态 SQL / 多对多 JOIN)
 │   │       │   └── service/           # 业务逻辑层 (用户档案, 热量打卡账本)
 │   │       └── resources/             # 配置文件 (application.yml)
 │   ├── pom.xml                        # Maven 依赖管理
@@ -48,12 +48,11 @@ fitbite-hub/                           # 【主项目根目录】
 │
 ├── fitbite-frontend/                  # 3. Web 前端项目 (Vue 3 + Vite + TS)
 │   ├── src/
-│   │   ├── api/                       # HTTP / SSE 请求封装
+│   │   ├── api/                       # HTTP / SSE 请求封装 (diet.ts)
 │   │   ├── assets/                    # 静态资源 (图片、样式)
-│   │   ├── components/                # 封装组件 (打字机对话框, 热量账本组件)
+│   │   ├── components/                # 业务组件 (DietGenerator, DietDashboard, DishLibrary)
 │   │   ├── stores/                    # Pinia 状态管理
-│   │   ├── views/                     # 页面视图 (首页, 减脂餐定制, 饮食打卡)
-│   │   ├── App.vue
+│   │   ├── App.vue                    # 主框架与 Tab 导航页签
 │   │   └── main.ts
 │   ├── package.json                   # 前端依赖配置
 │   └── README.md
@@ -101,7 +100,7 @@ mvn spring-boot:run
 **3. Web 前端（端口 5173）**
 
 ```bash
-cd fitbite-web-frontend
+cd fitbite-frontend
 pnpm install && pnpm dev
 ```
 

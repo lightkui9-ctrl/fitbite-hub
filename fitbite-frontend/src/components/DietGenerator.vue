@@ -101,9 +101,9 @@ const parsedMarkdown = computed(() => {
 
 const form = reactive({
   gender: 'male',
-  age: 25,
-  height: 175,
-  weight: 75,
+  age: 23,
+  height: 188,
+  weight: 88,
   activityLevel: 'moderate',
   targetWeightLoss: 5,
   availableIngredients: ['鸡胸肉', '西兰花', '鸡蛋'],

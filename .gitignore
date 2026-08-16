@@ -44,3 +44,12 @@ fitbite-frontend/*.local
 .DS_Store
 Thumbs.db
 .vscode/
+
+# ==========================================
+# 6. AI 辅助插件与本地记忆日志 (新增)
+# ==========================================
+.workbench/
+.workbuddy/
+MEMORY.md
+2026-*.md
+*.md.local

@@ -69,3 +69,13 @@ export function getDailySummary(userId: number, date?: string) {
     params: { userId, date }
   })
 }
+
+// 获取食材分类列表
+export function getIngredients() {
+  return api.get('/dish/ingredients')
+}
+
+// 根据食材多选搜索菜品
+export function searchDishesByIngredients(ingredientIds: number[]) {
+  return api.post('/dish/search', ingredientIds)
+}

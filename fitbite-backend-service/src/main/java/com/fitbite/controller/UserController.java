@@ -26,6 +26,7 @@ public class UserController {
     @Operation(summary = "根据用户名获取用户档案")
     @GetMapping("/info/{username}")
     public SysUser getUserInfo(@PathVariable String username) {
+
         return userService.getByUsername(username);
     }
 }

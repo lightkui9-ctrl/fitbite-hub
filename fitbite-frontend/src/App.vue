@@ -23,6 +23,10 @@
           <el-tab-pane label="📊 每日热量账本" name="dashboard">
             <DietDashboard />
           </el-tab-pane>
+          <!-- 新增：菜品食材检索选项卡 -->
+          <el-tab-pane label="🥗 菜品食材检索" name="library">
+            <DishLibrary />
+          </el-tab-pane>
         </el-tabs>
       </main>
     </div>
@@ -34,6 +38,7 @@ import { ref } from 'vue'
 import { Food } from '@element-plus/icons-vue'
 import DietGenerator from './components/DietGenerator.vue'
 import DietDashboard from './components/DietDashboard.vue'
+import DishLibrary from './components/DishLibrary.vue' // 👈 1. 引入新组件
 
 const activeTab = ref('ai')
 </script>
