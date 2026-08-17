@@ -91,6 +91,14 @@ import { ElMessage } from 'element-plus'
 import { MagicStick, Document } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 
+// 关键：开启 marked 的 breaks 选项，把单个 \n 渲染为 <br>
+// 这是后端 normalize_markdown 的最后一道兜底防线——即便 AI 输出没换行，
+// normalize 处理后的 \n 也能被前端正确识别为换行
+marked.setOptions({
+  breaks: true,  // 把 \n 转换为 <br>
+  gfm: true,     // 启用 GitHub 风格 Markdown
+})
+
 const loading = ref(false)
 const rawAiResult = ref('') // 存储清洗后的原始 Markdown 文本
 

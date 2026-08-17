@@ -25,20 +25,53 @@ export function generateDietStream(
       const reader = response.body?.getReader()
       const decoder = new TextDecoder('utf-8')
 
-      while (reader) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
+      // 累积 buffer，按 SSE 事件边界 (\n\n) 切分，避免吞掉 AI 输出内的换行
+      let buffer = ''
 
-        // 按行切分，清洗掉 SSE 协议的 "data:" 前缀
-        const lines = chunk.split('\n')
+      const flushEvents = (buf: string): { rest: string; events: string[] } => {
+        const events: string[] = []
+        let endIdx = buf.indexOf('\n\n')
+        while (endIdx !== -1) {
+          events.push(buf.slice(0, endIdx))
+          buf = buf.slice(endIdx + 2)
+          endIdx = buf.indexOf('\n\n')
+        }
+        return { rest: buf, events }
+      }
+
+      const extractData = (event: string): string => {
+        // SSE 事件可能跨多行 data:，按 \n 切分后拼接 data 部分
+        // 关键修复：每行 data 后必须补回 \n，否则多行内容会被前端连成单行
+        // （后端 to_sse_data() 用 f'data: {line}\n' 编码，前端解析时必须还原 \n）
+        const lines = event.split('\n')
+        const dataLines: string[] = []
         for (const line of lines) {
           if (line.startsWith('data:')) {
-            const content = line.replace(/^data:/, '')
-            onMessage(content)
-          } else if (line.trim() !== '') {
-            onMessage(line)
+            // 去掉 "data:" 前缀，保留后续内容
+            dataLines.push(line.replace(/^data:\s?/, ''))
           }
+        }
+        // 用 \n 拼接所有 data 行，正确还原 SSE 多行 data 中的换行
+        return dataLines.join('\n')
+      }
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const { rest, events } = flushEvents(buffer)
+          buffer = rest
+          for (const ev of events) {
+            const content = extractData(ev)
+            if (content) onMessage(content)
+          }
+        }
+        // 流结束时处理剩余 buffer
+        if (buffer.trim()) {
+          const content = extractData(buffer)
+          if (content) onMessage(content)
         }
       }
       onComplete()
