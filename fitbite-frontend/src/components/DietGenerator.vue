@@ -54,58 +54,142 @@
           size="large"
           class="w-full mt-2"
           :loading="loading"
+          :disabled="hasGenerated && loading"
           @click="handleGenerate"
         >
-          {{ loading ? 'AI 正在思考方案中...' : '生成专属减脂食谱' }}
+          {{ loading ? 'AI 正在思考方案中...' : (hasGenerated ? '重新生成食谱' : '生成专属减脂食谱') }}
+        </el-button>
+
+        <el-button
+          v-if="hasGenerated"
+          size="large"
+          class="w-full mt-2"
+          :disabled="loading"
+          @click="handleReset"
+        >
+          重新开始会话
         </el-button>
       </el-form>
     </div>
 
-    <!-- 右侧：打字机流式输出展示区 (支持 Markdown 美化) -->
+    <!-- 右侧：聊天式展示区（用户/AI 左右气泡，支持 Markdown 与流式打字机） -->
     <div class="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col">
       <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
         <el-icon class="text-blue-500"><Document /></el-icon> AI 智能推荐方案
       </h2>
 
-      <div class="flex-1 bg-slate-50 p-6 rounded-lg border border-slate-200 overflow-y-auto max-h-[550px] min-h-[380px]">
+      <div
+        ref="chatContainer"
+        class="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-200 overflow-y-auto max-h-[520px] min-h-[320px] space-y-4"
+      >
         <!-- 初始未生成状态 -->
-        <div v-if="!rawAiResult && !loading" class="text-slate-400 text-center py-24">
-          👈 在左侧填写参数并点击“生成”，即可查看 AI 流式生成的食谱方案
+        <div v-if="messages.length === 0 && !loading" class="text-slate-400 text-center py-24">
+          👈 在左侧填写参数并点击"生成"，即可查看 AI 流式生成的食谱方案
         </div>
 
-        <!-- 流式生成/渲染状态 -->
-        <div v-else class="prose max-w-none font-sans text-slate-700 leading-relaxed">
-          <div v-html="parsedMarkdown"></div>
-          <!-- 绿色的流式动画光标 -->
-          <span v-if="loading" class="inline-block w-2 h-4 bg-emerald-500 animate-pulse ml-1 align-middle"></span>
+        <!-- 消息气泡 -->
+        <div
+          v-for="(m, idx) in messages"
+          :key="idx"
+          class="flex"
+          :class="m.role === 'user' ? 'justify-end' : 'justify-start'"
+        >
+          <!-- 用户气泡（右） -->
+          <div
+            v-if="m.role === 'user'"
+            class="max-w-[80%] bg-emerald-500 text-white rounded-2xl rounded-tr-sm px-4 py-2 text-sm leading-relaxed whitespace-pre-wrap shadow-sm"
+          >
+            {{ m.content }}
+          </div>
+
+          <!-- AI 气泡（左） -->
+          <div
+            v-else
+            class="max-w-[90%] bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm"
+          >
+            <div
+              v-if="m.content"
+              class="prose max-w-none font-sans text-slate-700 leading-relaxed text-sm"
+              v-html="renderMarkdown(m.content)"
+            ></div>
+            <!-- 流式动画光标（仅最后一条 AI 且正在加载时） -->
+            <span
+              v-if="loading && idx === messages.length - 1 && !m.content"
+              class="text-slate-400 text-sm"
+            >AI 正在思考方案中...</span>
+            <span
+              v-if="loading && idx === messages.length - 1 && m.content"
+              class="inline-block w-2 h-4 bg-emerald-500 animate-pulse ml-1 align-middle"
+            ></span>
+          </div>
         </div>
+      </div>
+
+      <!-- 多轮追问输入框：首次生成完成后出现 -->
+      <div v-if="hasGenerated" class="mt-4 flex gap-2">
+        <el-input
+          v-model="followUpMsg"
+          placeholder="继续追问，例如：把早餐换成更低脂的方案 / 午餐用到的鸡胸肉热量是多少？"
+          :disabled="loading"
+          @keyup.enter="handleFollowUp"
+        />
+        <el-button
+          type="primary"
+          :loading="loading"
+          @click="handleFollowUp"
+        >
+          发送
+        </el-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
-import { generateDietStream } from '../api/diet'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { generateDietStream, getDietHistory, clearDietSession } from '../api/diet'
 import { ElMessage } from 'element-plus'
 import { MagicStick, Document } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 
 // 关键：开启 marked 的 breaks 选项，把单个 \n 渲染为 <br>
-// 这是后端 normalize_markdown 的最后一道兜底防线——即便 AI 输出没换行，
-// normalize 处理后的 \n 也能被前端正确识别为换行
 marked.setOptions({
   breaks: true,  // 把 \n 转换为 <br>
   gfm: true,     // 启用 GitHub 风格 Markdown
 })
 
-const loading = ref(false)
-const rawAiResult = ref('') // 存储清洗后的原始 Markdown 文本
+interface ChatMsg {
+  role: 'user' | 'assistant'
+  content: string
+}
 
-// 响应式计算属性：实时把接收到的 Markdown 文本编译为漂亮的 HTML
-const parsedMarkdown = computed(() => {
-  return marked.parse(rawAiResult.value)
-})
+const loading = ref(false)
+const hasGenerated = ref(false)
+const followUpMsg = ref('')
+const messages = ref<ChatMsg[]>([])
+const chatContainer = ref<HTMLElement | null>(null)
+
+// sessionId 持久化到 localStorage：刷新/重开后仍能恢复同一会话的历史与记忆
+const SESSION_KEY = 'fitbite_session_id'
+const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(SESSION_KEY) : null
+const sessionId = ref(
+  stored || `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+)
+if (!stored && typeof localStorage !== 'undefined') {
+  localStorage.setItem(SESSION_KEY, sessionId.value)
+}
+
+const renderMarkdown = (content: string): string => {
+  if (!content) return ''
+  return marked.parse(content) as string
+}
+
+const scrollToBottom = async () => {
+  await nextTick()
+  if (chatContainer.value) {
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+  }
+}
 
 const form = reactive({
   gender: 'male',
@@ -118,26 +202,96 @@ const form = reactive({
   dietaryRestrictions: []
 })
 
-const handleGenerate = () => {
-  rawAiResult.value = ''
-  loading.value = true
+// 首轮生成：把体征拼成一句可读的「用户提问」展示在气泡里
+const buildUserText = () => {
+  const genderTxt = form.gender === 'male' ? '男' : '女'
+  return `生成减脂餐方案（${genderTxt} / ${form.age}岁 / ${form.height}cm / ${form.weight}kg / 活动:${form.activityLevel}）`
+}
 
+const streamInto = (
+  aiIdx: number,
+  payload: any,
+  onDone: () => void
+) => {
   generateDietStream(
-    form,
-    (textChunk) => {
-      // 这里的 textChunk 已经是 API 模块清洗掉 "data:" 后的纯内容
-      rawAiResult.value += textChunk
+    payload,
+    (textChunk: string) => {
+      messages.value[aiIdx].content += textChunk
+      scrollToBottom()
     },
-    (err) => {
-      ElMessage.error('生成失败，请确认 Java 与 Python 服务均已启动')
+    () => {
+      ElMessage.error('请求失败，请确认 Java 与 Python 服务均已启动')
       loading.value = false
     },
     () => {
       loading.value = false
-      ElMessage.success('方案生成完毕！')
+      hasGenerated.value = true
+      onDone()
     }
   )
 }
+
+const handleGenerate = () => {
+  if (loading.value) return
+  loading.value = true
+  messages.value.push({ role: 'user', content: buildUserText() })
+  messages.value.push({ role: 'assistant', content: '' })
+  const aiIdx = messages.value.length - 1
+  scrollToBottom()
+  streamInto(aiIdx, { ...form, sessionId: sessionId.value }, () => {
+    ElMessage.success('方案生成完毕！可继续在下方追问')
+  })
+}
+
+// 多轮追问：只传 sessionId + message
+const handleFollowUp = () => {
+  const msg = followUpMsg.value.trim()
+  if (!msg || loading.value) return
+  followUpMsg.value = ''
+  loading.value = true
+  messages.value.push({ role: 'user', content: msg })
+  messages.value.push({ role: 'assistant', content: '' })
+  const aiIdx = messages.value.length - 1
+  scrollToBottom()
+  streamInto(aiIdx, { sessionId: sessionId.value, message: msg }, () => {
+    ElMessage.success('已更新方案')
+  })
+}
+
+// 重新开始：清空后端记忆 + 本地存储，开新会话
+const handleReset = async () => {
+  try {
+    await clearDietSession(sessionId.value)
+  } catch (e) {
+    // 后端未启动时忽略，前端至少清空展示
+  }
+  sessionId.value = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(SESSION_KEY, sessionId.value)
+  }
+  messages.value = []
+  hasGenerated.value = false
+  followUpMsg.value = ''
+  ElMessage.info('已开启新会话')
+}
+
+// 页面加载时恢复历史（用户提问 + AI 回答）
+onMounted(async () => {
+  try {
+    const res = await getDietHistory(sessionId.value)
+    const turns = res?.data?.turns || []
+    if (turns.length) {
+      messages.value = turns.map((t: any) => ({
+        role: t.role === 'user' ? 'user' : 'assistant',
+        content: t.content || ''
+      }))
+      hasGenerated.value = true
+      await scrollToBottom()
+    }
+  } catch (e) {
+    // 历史接口不可用（如后端未启动）时忽略，正常空白开始
+  }
+})
 </script>
 
 <style scoped>

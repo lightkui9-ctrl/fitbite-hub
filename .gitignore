@@ -17,6 +17,8 @@ __pycache__/
 .pytest_cache/
 chroma_data/
 *.log
+# 本地持久化数据（Agent 检查点 SQLite + 会话对话 JSON，运行时生成，不入库）
+fitbite-ai-service/data/
 
 # ==========================================
 # 3. Java / Maven (fitbite-backend-service) 忽略规则

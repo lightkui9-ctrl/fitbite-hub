@@ -34,4 +34,22 @@ public class DietAiServiceImpl implements DietAiService {
                 .retrieve()
                 .bodyToFlux(DataBuffer.class);  // 原始字节，不做 SSE 解析
     }
+
+    @Override
+    public String getHistory(String sessionId) {
+        return aiWebClient.get()
+                .uri("/api/v1/diet/session/history?session_id={sid}", sessionId)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    }
+
+    @Override
+    public String clearSession(String sessionId) {
+        return aiWebClient.post()
+                .uri("/api/v1/diet/session/clear?session_id={sid}", sessionId)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    }
 }

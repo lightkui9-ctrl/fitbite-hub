@@ -11,4 +11,10 @@ import reactor.core.publisher.Flux;
  */
 public interface DietAiService {
     Flux<DataBuffer> generateDietStream(DietGenerateDTO dto);
+
+    /** 获取会话历史（用户提问 + AI 回答），JSON 字符串透传自 Python */
+    String getHistory(String sessionId);
+
+    /** 清空会话记忆与本地存储，JSON 字符串透传自 Python */
+    String clearSession(String sessionId);
 }

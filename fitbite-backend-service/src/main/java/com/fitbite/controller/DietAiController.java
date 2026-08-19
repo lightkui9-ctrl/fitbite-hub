@@ -72,4 +72,16 @@ public class DietAiController {
                 })
                 .blockLast(); // 阻塞当前 Servlet 线程，直到 Flux 完成（保持 HTTP 连接不关闭）
     }
+
+    @Operation(summary = "获取会话历史（用户提问 + AI 回答）")
+    @GetMapping("/session/history")
+    public String sessionHistory(@RequestParam String sessionId) {
+        return dietAiService.getHistory(sessionId);
+    }
+
+    @Operation(summary = "清空会话记忆与本地存储")
+    @PostMapping("/session/clear")
+    public String clearSession(@RequestParam String sessionId) {
+        return dietAiService.clearSession(sessionId);
+    }
 }

@@ -1,14 +1,25 @@
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.config import settings
 from routers import diet
+from services.diet_agent import init_diet_agent_service
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时：建立本地 SQLite 检查点并构造 Agent 服务单例（持久化多轮记忆）
+    await init_diet_agent_service()
+    yield
+
 
 # 创建 FastAPI 实例
 app = FastAPI(
     title="FitBite 智膳 —— AI Agent 微服务",
     description="基于 FastAPI + LangChain/DeepSeek 的智能减脂餐与 RAG 膳食管理服务",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # 允许跨域请求 (为后续 Java 后端和 Vue 前端对接做准备)

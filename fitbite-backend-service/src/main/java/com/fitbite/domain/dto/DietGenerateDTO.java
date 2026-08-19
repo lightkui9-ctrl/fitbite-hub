@@ -31,4 +31,10 @@ public class DietGenerateDTO {
 
     @Schema(description = "忌口/过敏源", example = "[]")
     private List<String> dietaryRestrictions;
+
+    @Schema(description = "多轮追问的自然语言消息。传入时直接使用并复用会话历史", example = "把早餐换成更低脂的方案")
+    private String message;
+
+    @Schema(description = "会话 ID，用于多轮记忆隔离。前端每次会话生成唯一值", example = "sess-abc123")
+    private String sessionId;
 }

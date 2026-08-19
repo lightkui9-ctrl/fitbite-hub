@@ -103,6 +103,20 @@ export function getDailySummary(userId: number, date?: string) {
   })
 }
 
+// 5. 获取会话历史（用户提问 + AI 回答），供前端刷新后恢复聊天记录
+export function getDietHistory(sessionId: string) {
+  return api.get('/ai/diet/session/history', {
+    params: { session_id: sessionId }
+  })
+}
+
+// 6. 清空会话记忆与本地存储（重新开始时调用）
+export function clearDietSession(sessionId: string) {
+  return api.post('/ai/diet/session/clear', null, {
+    params: { session_id: sessionId }
+  })
+}
+
 // 获取食材分类列表
 export function getIngredients() {
   return api.get('/dish/ingredients')
