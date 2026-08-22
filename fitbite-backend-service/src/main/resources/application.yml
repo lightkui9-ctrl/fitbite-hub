@@ -27,3 +27,10 @@ mybatis-plus:
 # Python AI 微服务地址[cite: 2]
 ai-service:
   base-url: http://localhost:8001
+
+# JWT 配置（用户登录鉴权）
+jwt:
+  # 签名密钥，需 >= 32 字节。生产环境请替换为强随机密钥并妥善保管
+  secret: fitbite-jwt-secret-key-2026-strong-enough-not-for-prod-use-please-change
+  # Token 有效期（毫秒），默认 7 天
+  expiration: 604800000

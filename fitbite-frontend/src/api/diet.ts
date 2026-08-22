@@ -6,6 +6,15 @@ export const api = axios.create({
   timeout: 10000
 })
 
+// 2. 请求拦截器：自动为所有请求附加 JWT（从 localStorage 读取）
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('fitbite_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 // 2. 封装 SSE 流式请求（用于接收 DeepSeek 生成减脂餐的打字机流，并清洗 "data:" 前缀）
 export function generateDietStream(
   data: any,

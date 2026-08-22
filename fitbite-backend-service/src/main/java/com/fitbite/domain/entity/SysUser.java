@@ -13,6 +13,9 @@ public class SysUser {
 
     private String username;
 
+    private String password;
+
+
     private String gender;
 
     private Integer age;

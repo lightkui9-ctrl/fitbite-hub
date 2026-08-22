@@ -1,5 +1,9 @@
 <template>
-  <div class="min-h-screen bg-slate-100 p-6">
+  <!-- 未登录：登录 / 注册 -->
+  <AuthView v-if="!userStore.isLoggedIn" />
+
+  <!-- 已登录：主应用 -->
+  <div v-else class="min-h-screen bg-slate-100 p-6">
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- 顶部 Header -->
       <header class="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
@@ -12,6 +16,11 @@
             <p class="text-xs text-slate-400">基于 AI Agent 的个性化减脂餐与健康管理系统</p>
           </div>
         </div>
+        <div class="flex items-center space-x-3">
+          <span class="text-sm text-slate-600">你好，{{ userStore.user?.username || '用户' }}</span>
+          <el-button text :icon="Edit" @click="profileVisible = true">完善档案</el-button>
+          <el-button type="primary" plain :icon="SwitchButton" @click="handleLogout">退出登录</el-button>
+        </div>
       </header>
 
       <!-- 核心功能导航页签 -->
@@ -23,24 +32,48 @@
           <el-tab-pane label="📊 每日热量账本" name="dashboard">
             <DietDashboard />
           </el-tab-pane>
-          <!-- 新增：菜品食材检索选项卡 -->
           <el-tab-pane label="🥗 菜品食材检索" name="library">
             <DishLibrary />
           </el-tab-pane>
         </el-tabs>
       </main>
+
+      <!-- 完善个人档案弹窗 -->
+      <ProfileDialog v-model="profileVisible" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Food } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+import { Food, Edit, SwitchButton } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { useUserStore } from './stores/user'
+import AuthView from './components/AuthView.vue'
+import ProfileDialog from './components/ProfileDialog.vue'
 import DietGenerator from './components/DietGenerator.vue'
 import DietDashboard from './components/DietDashboard.vue'
-import DishLibrary from './components/DishLibrary.vue' // 👈 1. 引入新组件
+import DishLibrary from './components/DishLibrary.vue'
 
+const userStore = useUserStore()
 const activeTab = ref('ai')
+const profileVisible = ref(false)
+
+// 刷新后若仅有 token 而无 user，则拉取一次用户信息
+onMounted(async () => {
+  if (userStore.isLoggedIn && !userStore.user) {
+    try {
+      await userStore.fetchMe()
+    } catch {
+      userStore.logout()
+    }
+  }
+})
+
+function handleLogout() {
+  userStore.logout()
+  ElMessage.success('已退出登录')
+}
 </script>
 
 <style>

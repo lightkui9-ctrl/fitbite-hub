@@ -13,16 +13,16 @@ public class UserSaveDTO {
     @Schema(description = "性别 (male/female)", example = "male")
     private String gender;
 
-    @Schema(description = "年龄", example = "25")
+    @Schema(description = "年龄", example = "23")
     private Integer age;
 
-    @Schema(description = "身高 (cm)", example = "175.0")
+    @Schema(description = "身高 (cm)", example = "186.0")
     private Double height;
 
-    @Schema(description = "当前体重 (kg)", example = "75.0")
+    @Schema(description = "当前体重 (kg)", example = "88.0")
     private Double weight;
 
-    @Schema(description = "目标体重 (kg)", example = "68.0")
+    @Schema(description = "目标体重 (kg)", example = "83.0")
     private Double targetWeight;
 
     @Schema(description = "日常活动量", example = "moderate")

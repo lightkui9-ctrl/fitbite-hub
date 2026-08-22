@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
 @RestController
 @RequestMapping("/api/v1/ai/diet")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
 public class DietAiController {
 
     private final DietAiService dietAiService;

@@ -16,7 +16,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/diet/record")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
 public class DietRecordController {
 
     private final DietRecordService dietRecordService;
